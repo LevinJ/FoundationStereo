@@ -8,6 +8,8 @@
 
 
 import os,sys
+import time  # Add this import at the top of the file
+from typing import Optional, Tuple
 code_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(f'{code_dir}/../')
 from omegaconf import OmegaConf
@@ -35,6 +37,23 @@ if __name__=="__main__":
   parser.add_argument('--denoise_radius', type=float, default=0.03, help='radius to use for outlier removal')
   args = parser.parse_args()
 
+  #speed bump
+  folder = '/media/levin/DATA/nerf/new_es8/stereo_20250331/20250331/jiuting_campus'
+  # file_name = '20250331_111635.913_10.png'
+  file_name = '20250331_111633.958_10.png'
+
+  #big hole
+  # folder = '/media/levin/DATA/nerf/new_es8/stereo_20250331/20250331/lidar'
+  # file_name = '00000062.png'
+
+  args.left_file = f"{folder}/colored_l/{file_name}"
+  args.right_file = f"{folder}/colored_r/{file_name}"
+  args.intrinsic_file = "/media/levin/DATA/nerf/new_es8/stereo_20250331/K_Zed.txt"
+
+  args.z_far = 100
+  args.remove_invisible = True
+  args.denoise_cloud = False
+
   set_logging_format()
   set_seed(0)
   torch.autograd.set_grad_enabled(False)
@@ -58,14 +77,15 @@ if __name__=="__main__":
   model.eval()
 
   code_dir = os.path.dirname(os.path.realpath(__file__))
-  img0 = imageio.imread(args.left_file)
-  img1 = imageio.imread(args.right_file)
+  img0 = imageio.imread(args.left_file, pilmode="RGB")
+  img1 = imageio.imread(args.right_file, pilmode="RGB")
   scale = args.scale
   assert scale<=1, "scale must be <=1"
   img0 = cv2.resize(img0, fx=scale, fy=scale, dsize=None)
   img1 = cv2.resize(img1, fx=scale, fy=scale, dsize=None)
   H,W = img0.shape[:2]
   img0_ori = img0.copy()
+  img1_ori = img1.copy()
   logging.info(f"img0: {img0.shape}")
 
   img0 = torch.as_tensor(img0).cuda().float()[None].permute(0,3,1,2)
@@ -73,16 +93,28 @@ if __name__=="__main__":
   padder = InputPadder(img0.shape, divis_by=32, force_square=False)
   img0, img1 = padder.pad(img0, img1)
 
+  start_time = time.time()  # Start timing
   with torch.cuda.amp.autocast(True):
     if not args.hiera:
       disp = model.forward(img0, img1, iters=args.valid_iters, test_mode=True)
     else:
       disp = model.run_hierachical(img0, img1, iters=args.valid_iters, test_mode=True, small_ratio=0.5)
+  end_time = time.time()  # End timing
+
+  print(f"Running duration: {end_time - start_time:.2f} seconds")  # Print the duration
+
   disp = padder.unpad(disp.float())
   disp = disp.data.cpu().numpy().reshape(H,W)
   vis = vis_disparity(disp)
   vis = np.concatenate([img0_ori, vis], axis=1)
   imageio.imwrite(f'{args.out_dir}/vis.png', vis)
+  logging.info(f"Output saved to {args.out_dir}")
+
+  vis = np.concatenate([img0_ori, img1_ori], axis=1)
+  imageio.imwrite(f'{args.out_dir}/vis_orgin.png', vis)
+  logging.info(f"Output saved to {args.out_dir}")
+
+  imageio.imwrite(f'{args.out_dir}/rbg.png', img0_ori)
   logging.info(f"Output saved to {args.out_dir}")
 
   if args.remove_invisible:
@@ -99,27 +131,5 @@ if __name__=="__main__":
     K[:2] *= scale
     depth = K[0,0]*baseline/disp
     np.save(f'{args.out_dir}/depth_meter.npy', depth)
-    xyz_map = depth2xyzmap(depth, K)
-    pcd = toOpen3dCloud(xyz_map.reshape(-1,3), img0_ori.reshape(-1,3))
-    keep_mask = (np.asarray(pcd.points)[:,2]>0) & (np.asarray(pcd.points)[:,2]<=args.z_far)
-    keep_ids = np.arange(len(np.asarray(pcd.points)))[keep_mask]
-    pcd = pcd.select_by_index(keep_ids)
-    o3d.io.write_point_cloud(f'{args.out_dir}/cloud.ply', pcd)
-    logging.info(f"PCL saved to {args.out_dir}")
-
-    if args.denoise_cloud:
-      logging.info("denoise point cloud...")
-      cl, ind = pcd.remove_radius_outlier(nb_points=args.denoise_nb_points, radius=args.denoise_radius)
-      inlier_cloud = pcd.select_by_index(ind)
-      o3d.io.write_point_cloud(f'{args.out_dir}/cloud_denoise.ply', inlier_cloud)
-      pcd = inlier_cloud
-
-    logging.info("Visualizing point cloud. Press ESC to exit.")
-    vis = o3d.visualization.Visualizer()
-    vis.create_window()
-    vis.add_geometry(pcd)
-    vis.get_render_option().point_size = 1.0
-    vis.get_render_option().background_color = np.array([0.5, 0.5, 0.5])
-    vis.run()
-    vis.destroy_window()
+    process_and_visualize_point_cloud(depth, K, img0_ori, args.out_dir, args.z_far, args.denoise_cloud, args.denoise_nb_points, args.denoise_radius)
 
