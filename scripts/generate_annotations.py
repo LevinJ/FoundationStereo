@@ -42,7 +42,8 @@ if __name__ == "__main__":
     # Speed bump
     img_folder = '/media/levin/DATA/nerf/new_es8/stereo_20250331/20250331/jiuting_campus'
     # file_name = '20250331_111635.913_10.png'
-    file_names = ['20250331_111633.958_10.png'] 
+    file_names = ['20250331_111636.639_10.png', '20250331_111635.380_10.png', '20250331_111634.669_10.png',
+                  '20250331_111634.138_10.png'] 
 
     # Big hole
     # img_folder = '/media/levin/DATA/nerf/new_es8/stereo_20250331/20250331/lidar'
@@ -87,15 +88,15 @@ if __name__ == "__main__":
         args.left_file = f"{img_folder}/colored_l/{file_name}"
         args.right_file = f"{img_folder}/colored_r/{file_name}"
         code_dir = os.path.dirname(os.path.realpath(__file__))
-        img0 = imageio.imread(args.left_file, pilmode="RGB")
-        img1 = imageio.imread(args.right_file, pilmode="RGB")
+        img0 = imageio.v2.imread(args.left_file, pilmode="RGB")
+        img1 = imageio.v2.imread(args.right_file, pilmode="RGB")
         scale = args.scale
         assert scale <= 1, "scale must be <=1"
         img0 = cv2.resize(img0, fx=scale, fy=scale, dsize=None)
         img1 = cv2.resize(img1, fx=scale, fy=scale, dsize=None)
         H, W = img0.shape[:2]
         img0_ori = img0.copy()
-        logging.info(f"img0: {img0.shape}")
+        # logging.info(f"img0: {img0.shape}")
 
         img0 = torch.as_tensor(img0).cuda().float()[None].permute(0, 3, 1, 2)
         img1 = torch.as_tensor(img1).cuda().float()[None].permute(0, 3, 1, 2)
@@ -122,6 +123,28 @@ if __name__ == "__main__":
 
         K[:2] *= scale
         depth = K[0, 0] * baseline / disp
+        
+        depth[depth< 0] = 0
+        depth[depth > 100] = 0
+        # import matplotlib.pyplot as plt
+
+        # # Display the RGB image and depth image side by side
+        # plt.figure(figsize=(12, 6))
+
+        # plt.subplot(1, 2, 1)
+        # plt.title("RGB Image")
+        # plt.imshow(img0_ori)
+        # plt.axis("off")
+
+        # plt.subplot(1, 2, 2)
+        # plt.title("Depth Image")
+        # plt.imshow(depth)
+        # plt.colorbar(label="Depth (meters)")
+        # plt.axis("off")
+
+        # plt.tight_layout()
+        # # plt.savefig(f'{args.out_dir}/rgb_and_depth.png')
+        # plt.show()
 
         # Convert intrinsic matrix K to [fx, fy, cx, cy] format
         fx = float(K[0, 0])
@@ -140,7 +163,7 @@ if __name__ == "__main__":
         os.makedirs(output_rgb_dir, exist_ok=True)  # Ensure the directory exists
         rgb_file_path = f'rgb/{file_name}'  # Relative path
         imageio.imwrite(f'{annotation_base_path}/{rgb_file_path}', img0_ori[:crop_y, :, :])
-        logging.info(f"Output saved to {args.out_dir}")
+        logging.info(f"rgb saved to {annotation_base_path}/{rgb_file_path}")
 
         # Save depth file
         output_depth_dir = f'{annotation_base_path}/depth'
@@ -148,7 +171,7 @@ if __name__ == "__main__":
         npy_file_name = file_name.replace('png', 'npy')
         depth_file_path = f'depth/{npy_file_name}'  # Relative path
         np.save(f'{annotation_base_path}/{depth_file_path}', depth[:crop_y, :])
-        process_and_visualize_point_cloud(depth, K, img0_ori, args.out_dir, args.z_far, args.denoise_cloud, args.denoise_nb_points, args.denoise_radius)
+        # process_and_visualize_point_cloud(depth, K, img0_ori, args.out_dir, args.z_far, args.denoise_cloud, args.denoise_nb_points, args.denoise_radius)
 
         # Add annotation information for the current file
         annotations["files"].append({

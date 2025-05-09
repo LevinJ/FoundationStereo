@@ -131,5 +131,24 @@ if __name__=="__main__":
     K[:2] *= scale
     depth = K[0,0]*baseline/disp
     np.save(f'{args.out_dir}/depth_meter.npy', depth)
+    import matplotlib.pyplot as plt
+
+    # Display the RGB image and depth image side by side
+    plt.figure(figsize=(12, 6))
+
+    plt.subplot(1, 2, 1)
+    plt.title("RGB Image")
+    plt.imshow(img0_ori)
+    plt.axis("off")
+
+    plt.subplot(1, 2, 2)
+    plt.title("Depth Image")
+    plt.imshow(depth)
+    plt.colorbar(label="Depth (meters)")
+    plt.axis("off")
+
+    plt.tight_layout()
+    # plt.savefig(f'{args.out_dir}/rgb_and_depth.png')
+    plt.show()
     process_and_visualize_point_cloud(depth, K, img0_ori, args.out_dir, args.z_far, args.denoise_cloud, args.denoise_nb_points, args.denoise_radius)
 
