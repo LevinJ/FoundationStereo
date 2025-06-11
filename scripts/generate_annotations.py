@@ -40,11 +40,25 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Speed bump
-    img_folder = '/media/levin/DATA/nerf/new_es8/stereo_20250331/20250331/jiuting_campus'
-    # file_name = '20250331_111635.913_10.png'
-    file_names = ['20250331_111636.639_10.png', '20250331_111635.380_10.png', '20250331_111634.669_10.png',
-                  '20250331_111634.138_10.png'] 
+    # img_folder = '/media/levin/DATA/nerf/new_es8/stereo_20250331/20250331/jiuting_campus'
+    # file_names = ['20250331_111636.639_10.png', '20250331_111635.380_10.png', '20250331_111634.669_10.png',
+    #               '20250331_111634.138_10.png'] 
 
+    #big hole
+    # img_folder = '/media/levin/DATA/nerf/new_es8/stereo_20250331/20250331/lidar'
+    # file_names = ['00000051.png', '00000049.png', '00000060.png',
+    #               '00000061.png'] 
+    
+    img_folder = '/media/levin/DATA/nerf/new_es8/stereo/250610/'
+    file_names = ['00000005.png', '00000006.png',
+                  '00000011.png', '00000012.png',
+                  '00000018.png', '00000023.png', '00000024.png']
+    # file_names = []
+    if not file_names:
+        rgb_folder = f"{img_folder}/colored_l/"
+        file_names = [os.path.basename(f) for f in os.listdir(rgb_folder) if f.endswith(('.png', '.jpg'))]
+
+    file_names.sort()
     # Big hole
     # img_folder = '/media/levin/DATA/nerf/new_es8/stereo_20250331/20250331/lidar'
     # file_name = '00000062.png'
@@ -52,7 +66,7 @@ if __name__ == "__main__":
 
     args.z_far = 100
     args.denoise_cloud = False
-    crop_y = 800
+    crop_y = 1000
 
     set_logging_format()
     set_seed(0)

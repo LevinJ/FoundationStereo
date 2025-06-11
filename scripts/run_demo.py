@@ -38,9 +38,10 @@ if __name__=="__main__":
   args = parser.parse_args()
 
   #speed bump
-  folder = '/media/levin/DATA/nerf/new_es8/stereo_20250331/20250331/jiuting_campus'
+  # folder = '/media/levin/DATA/nerf/new_es8/stereo_20250331/20250331/jiuting_campus'
+  folder = '/media/levin/DATA/nerf/new_es8/stereo/250610'
   # file_name = '20250331_111635.913_10.png'
-  file_name = '20250331_111633.958_10.png'
+  file_name = '00000005.png'
 
   #big hole
   # folder = '/media/levin/DATA/nerf/new_es8/stereo_20250331/20250331/lidar'
