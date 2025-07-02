@@ -12,11 +12,17 @@ import json
 
 class CombineAnnotation(object):
     def __init__(self):
+        self.use_rel_path = True  # Use relative paths for RGB and depth files
+        self.base_dir = '/media/levin/DATA/nerf/new_es8/stereo/annotations'  # Base directory for annotations
         return
     def run(self):
+        # annotation_files = [
+        #     '/media/levin/DATA/nerf/new_es8/stereo_20250331/20250331/jiuting_campus/annotation/zed_annotation.json',
+        #     '/media/levin/DATA/nerf/new_es8/stereo/250610/annotation/zed_annotation.json'
+        # ]
+
         annotation_files = [
-            '/media/levin/DATA/nerf/new_es8/stereo_20250331/20250331/jiuting_campus/annotation/zed_annotation.json',
-            '/media/levin/DATA/nerf/new_es8/stereo/250610/annotation/zed_annotation.json'
+            '/media/levin/DATA/nerf/new_es8/stereo/annotations/20250701/zed_annotation.json',
         ]
         merged_items = []
         for ann_path in annotation_files:
@@ -28,9 +34,14 @@ class CombineAnnotation(object):
                 # Fix rgb path
                 if not os.path.isabs(item.get('rgb', '')):
                     item['rgb'] = os.path.normpath(os.path.join(ann_dir, item['rgb']))
+                if self.use_rel_path:
+                    item['rgb'] = os.path.relpath(item['rgb'], self.base_dir)
+                    
                 # Fix depth path
                 if not os.path.isabs(item.get('depth', '')):
                     item['depth'] = os.path.normpath(os.path.join(ann_dir, item['depth']))
+                if self.use_rel_path:
+                    item['depth'] = os.path.relpath(item['depth'], self.base_dir)
                 merged_items.append(item)
         merged_annotations = {'files': merged_items}
         # Ensure temp directory exists under the script directory
