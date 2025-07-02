@@ -22,6 +22,10 @@ from core.utils.utils import InputPadder
 from Utils import *
 from core.foundation_stereo import *
 
+sys.path.append('/home/levin/workspace/nerf/forward/vggt')
+
+from sky_segmentation import segment_sky_from_image
+
 class GenAnnoPicking:
     def __init__(self, args):
         self.code_dir = os.path.dirname(os.path.realpath(__file__))
@@ -76,6 +80,7 @@ class GenAnnoPicking:
         for file_name in file_names:
             args.left_file = file_name
             args.right_file = file_name.replace('left_images', 'right_images')  # Assuming the right image has 'right' in its name
+            sky_mask = segment_sky_from_image(file_name)
             # code_dir = os.path.dirname(os.path.realpath(__file__))
             img0 = imageio.v2.imread(args.left_file, pilmode="RGB")
             img1 = imageio.v2.imread(args.right_file, pilmode="RGB")
@@ -115,25 +120,37 @@ class GenAnnoPicking:
             
             depth[depth< 0] = 0
             depth[depth > 100] = 0
-            # import matplotlib.pyplot as plt
+            depth[sky_mask] = 0  # Set sky pixels to zero in depth
+            vis = False
+            if vis:
+                import matplotlib.pyplot as plt
 
-            # # Display the RGB image and depth image side by side
-            # plt.figure(figsize=(12, 6))
+                # Replace the sky mask with the original image but set sky pixels to black
+                img_with_black_sky = img0_ori.copy()
+                img_with_black_sky[sky_mask] = 0  # Set sky pixels to black
 
-            # plt.subplot(1, 2, 1)
-            # plt.title("RGB Image")
-            # plt.imshow(img0_ori)
-            # plt.axis("off")
+                # Display the RGB image, depth image, and modified image side by side in a horizontal layout
+                plt.figure(figsize=(18, 6))  # Adjust the figure size to accommodate three subplots
 
-            # plt.subplot(1, 2, 2)
-            # plt.title("Depth Image")
-            # plt.imshow(depth)
-            # plt.colorbar(label="Depth (meters)")
-            # plt.axis("off")
+                plt.subplot(1, 3, 1)
+                plt.title("RGB Image")
+                plt.imshow(img0_ori)
+                plt.axis("off")
 
-            # plt.tight_layout()
-            # # plt.savefig(f'{args.out_dir}/rgb_and_depth.png')
-            # plt.show()
+                plt.subplot(1, 3, 2)
+                plt.title("Depth Image")
+                plt.imshow(depth)
+                plt.colorbar(label="Depth (meters)")
+                plt.axis("off")
+
+                plt.subplot(1, 3, 3)
+                plt.title("Image with Sky Blacked Out")
+                plt.imshow(img_with_black_sky)
+                plt.axis("off")
+
+                plt.tight_layout()
+                # plt.savefig(f'{args.out_dir}/rgb_depth_black_sky.png')
+                plt.show()
 
             # Convert intrinsic matrix K to [fx, fy, cx, cy] format
             fx = float(K[0, 0])
