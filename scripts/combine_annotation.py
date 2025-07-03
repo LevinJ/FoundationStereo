@@ -22,7 +22,7 @@ class CombineAnnotation(object):
         # ]
 
         annotation_files = [
-            '/media/levin/DATA/nerf/new_es8/stereo/annotations/20250701/zed_annotation.json',
+            '/media/levin/DATA/nerf/new_es8/stereo/annotations/20250702/zed_annotation_eval.json',
         ]
         merged_items = []
         for ann_path in annotation_files:
@@ -48,7 +48,10 @@ class CombineAnnotation(object):
         script_dir = os.path.dirname(os.path.abspath(__file__))
         temp_dir = os.path.join(script_dir, 'temp')
         os.makedirs(temp_dir, exist_ok=True)
-        out_path = os.path.join(temp_dir, 'merged_zed_annotation.json')
+        anno_file_sufix = ''
+        if '_eval' in annotation_files[0]:
+            anno_file_sufix = '_eval'
+        out_path = os.path.join(temp_dir, f'merged_zed_annotation{anno_file_sufix}.json')
         with open(out_path, 'w', encoding='utf-8') as f:
             json.dump(merged_annotations, f, indent=2)
         print(f"Merged annotation saved to {out_path}")

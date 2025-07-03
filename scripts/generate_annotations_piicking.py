@@ -13,6 +13,7 @@ import json  # Add this import at the top of the file
 from typing import Optional, Tuple
 
 from sklearn import base
+from tqdm import tqdm  # Import tqdm for progress bar
 
 code_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(f'{code_dir}/../')
@@ -34,8 +35,13 @@ class GenAnnoPicking:
     def run(self):
         args = self.args  # Use the passed args
         #with picked images
-        img_folder = '/media/levin/DATA/nerf/new_es8/stereo/20250701/'
-        picked_images_file = f"{img_folder}/picked_images.txt"
+        img_folder = '/media/levin/DATA/nerf/new_es8/stereo/20250702/'
+        eval = False
+
+        anno_file_sufix = ''
+        if eval:
+            anno_file_sufix = '_eval'
+        picked_images_file = f"{img_folder}/picked_images{anno_file_sufix}.txt"
         with open(picked_images_file, "r", encoding="utf-8") as file:
                 file_names = list(file.read().splitlines())
 
@@ -76,8 +82,8 @@ class GenAnnoPicking:
 
         annotations = {"files": []}  # Initialize the annotations dictionary
 
-        # Loop through each file in the list
-        for file_name in file_names:
+        # Loop through each file in the list with a progress bar
+        for file_name in tqdm(file_names, desc="Processing files"):
             args.left_file = file_name
             args.right_file = file_name.replace('left_images', 'right_images')  # Assuming the right image has 'right' in its name
             sky_mask = segment_sky_from_image(file_name)
@@ -170,7 +176,7 @@ class GenAnnoPicking:
             os.makedirs(output_rgb_dir, exist_ok=True)  # Ensure the directory exists
             rgb_file_path = f'rgb/{base_name}'  # Relative path
             imageio.imwrite(f'{annotation_base_path}/{rgb_file_path}', img0_ori[:crop_y, :, :])
-            logging.info(f"rgb saved to {annotation_base_path}/{rgb_file_path}")
+            # logging.info(f"rgb saved to {annotation_base_path}/{rgb_file_path}")
 
             # Save depth file
             output_depth_dir = f'{annotation_base_path}/depth'
@@ -188,7 +194,7 @@ class GenAnnoPicking:
             })
 
         # Save annotations to a JSON file
-        json_file_path = os.path.join(annotation_base_path, "zed_annotation.json")
+        json_file_path = os.path.join(annotation_base_path, f"zed_annotation{anno_file_sufix}.json")
         with open(json_file_path, 'w') as json_file:
             json.dump(annotations, json_file, indent=4)
         logging.info(f"Annotations saved to {json_file_path}")
